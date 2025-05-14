@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title or "Create New User" }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0 h4"><i class="bi bi-person-plus-fill me-2"></i>{{ title or "Create New User" }}</h2>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Account Information</legend>
+                             <div class="mb-3">
+                                {{ form.full_name.label(class="form-label fw-semibold") }}
+                                {% if form.full_name.errors %}
+                                    {{ form.full_name(class="form-control is-invalid", placeholder="Enter full name") }}
+                                    <div class="invalid-feedback">{% for error in form.full_name.errors %}<span>{{ error }}</span><br>{% endfor %}</div>
+                                {% else %}
+                                    {{ form.full_name(class="form-control", placeholder="Enter full name") }}
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.email.label(class="form-label fw-semibold") }}
+                                {% if form.email.errors %}
+                                    {{ form.email(class="form-control is-invalid", placeholder="Login email address") }}
+                                    <div class="invalid-feedback">{% for error in form.email.errors %}<span>{{ error }}</span><br>{% endfor %}</div>
+                                {% else %}
+                                    {{ form.email(class="form-control", placeholder="Login email address") }}
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.role.label(class="form-label fw-semibold") }}
+                                {% if form.role.errors %}
+                                    {{ form.role(class="form-select is-invalid") }}
+                                    <div class="invalid-feedback">{% for error in form.role.errors %}<span>{{ error }}</span><br>{% endfor %}</div>
+                                {% else %}
+                                    {{ form.role(class="form-select") }}
+                                {% endif %}
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="mb-4">
+                            <legend class="h5 mb-3 border-bottom pb-2">Set Password</legend>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.password.label(class="form-label fw-semibold") }}
+                                        {% if form.password.errors %}
+                                            {{ form.password(class="form-control is-invalid") }}
+                                            <div class="invalid-feedback">{% for error in form.password.errors %}<span>{{ error }}</span><br>{% endfor %}</div>
+                                        {% else %}
+                                            {{ form.password(class="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.confirm_password.label(class="form-label fw-semibold") }}
+                                        {% if form.confirm_password.errors %}
+                                            {{ form.confirm_password(class="form-control is-invalid") }}
+                                            <div class="invalid-feedback">{% for error in form.confirm_password.errors %}<span>{{ error }}</span><br>{% endfor %}</div>
+                                        {% else %}
+                                            {{ form.confirm_password(class="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="mb-3" id="studentSpecificFields" style="display: none;">
+                            <legend class="h6 mb-3 border-bottom pb-1 text-muted">Student Specific (If applicable)</legend>
+                             <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.student_id.label(class="form-label") }}
+                                        {{ form.student_id(class="form-control" + (" is-invalid" if form.student_id.errors else ""), placeholder="Enter Student ID") }}
+                                        {% if form.student_id.errors %}<div class="invalid-feedback">{% for error in form.student_id.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.class_name.label(class="form-label") }}
+                                        {{ form.class_name(class="form-control" + (" is-invalid" if form.class_name.errors else ""), placeholder="Enter Class Name") }}
+                                        {% if form.class_name.errors %}<div class="invalid-feedback">{% for error in form.class_name.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div class="mt-4 d-flex justify-content-end border-top pt-3">
+                             <a href="{{ url_for('admin.list_users') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                             {{ form.submit(class="btn btn-primary px-4") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('{{ form.role.id }}');
+        const studentFieldsDiv = document.getElementById('studentSpecificFields');
+
+        function toggleStudentFields() {
+            if (roleSelect && studentFieldsDiv) {
+                if (roleSelect.value === 'student') {
+                    studentFieldsDiv.style.display = 'block';
+                } else {
+                    studentFieldsDiv.style.display = 'none';
+                }
+            }
+        }
+
+        if (roleSelect) {
+            toggleStudentFields();
+            roleSelect.addEventListener('change', toggleStudentFields);
+        }
+    });
+</script>
+{% endblock %}

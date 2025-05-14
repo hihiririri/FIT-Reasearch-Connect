@@ -1,0 +1,182 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ title or "Admin Dashboard" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 px-lg-4">
+
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Admin Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+            </div>
+             <span class="text-muted">Welcome, {{ current_user.full_name }}!</span>
+        </div>
+    </div>
+
+    <h3 class="mb-3 text-muted"><i class="bi bi-bar-chart-line"></i> System Overview</h3>
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 overflow-hidden h-100 stat-card">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-primary text-white rounded-3 p-3 me-3">
+                            <i class="bi bi-people-fill h2 mb-0"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small text-uppercase">Total Users</p>
+                            <h3 class="fw-bold mb-0">{{ user_count | default('0') }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin.list_users') }}" class="card-footer bg-light-subtle border-0 text-primary text-decoration-none small py-2 fw-semibold">
+                    View Details <i class="bi bi-arrow-right-short"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 overflow-hidden h-100 stat-card">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-info text-white rounded-3 p-3 me-3">
+                            <i class="bi bi-person-video3 h2 mb-0"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small text-uppercase">Lecturers</p>
+                            <h3 class="fw-bold mb-0">{{ lecturer_count | default('0') }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin.list_users', role='lecturer') }}" class="card-footer bg-light-subtle border-0 text-info text-decoration-none small py-2 fw-semibold">
+                    View Details <i class="bi bi-arrow-right-short"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 overflow-hidden h-100 stat-card">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-success text-white rounded-3 p-3 me-3">
+                            <i class="bi bi-person-badge h2 mb-0"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="text-muted mb-1 small text-uppercase">Students</p>
+                            <h3 class="fw-bold mb-0">{{ student_count | default('0') }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin.list_users', role='student') }}" class="card-footer bg-light-subtle border-0 text-success text-decoration-none small py-2 fw-semibold">
+                    View Details <i class="bi bi-arrow-right-short"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 overflow-hidden h-100 stat-card">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 bg-warning text-dark rounded-3 p-3 me-3">
+                            <i class="bi bi-lightbulb-fill h2 mb-0"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="text-dark mb-1 small text-uppercase">Pending Ideas</p>
+                            <h3 class="fw-bold mb-0">{{ pending_idea_count | default('0') }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('view_pending_ideas') }}" class="card-footer bg-light-subtle border-0 text-warning-emphasis text-decoration-none small py-2 fw-semibold">
+                    View Details <i class="bi bi-arrow-right-short"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+     <div class="row mb-4">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header"><h5 class="mb-0">User Registration Trend</h5></div>
+                <div class="card-body">
+                    <canvas id="userChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Content Overview</h5></div>
+                <div class="card-body">
+                    <canvas id="contentPieChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-4">
+
+    <h3 class="mb-3 text-muted"><i class="bi bi-grid-1x2-fill me-2"></i>Management Modules</h3>
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-3 d-flex align-items-stretch">
+            <div class="card shadow-sm h-100 w-100 text-decoration-none link-dark management-card">
+                <a href="{{ url_for('admin.list_users') }}" class="stretched-link"></a>
+                <div class="card-body text-center p-4">
+                    <div class="display-3 text-primary mb-3"><i class="bi bi-people-fill"></i></div>
+                    <h5 class="card-title mb-1">User Management</h5>
+                    <p class="card-text small text-muted">View, create, edit, and delete user accounts.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 d-flex align-items-stretch">
+            <div class="card shadow-sm h-100 w-100 text-decoration-none link-dark management-card">
+                 <a href="{{ url_for('admin.list_posts') }}" class="stretched-link"></a>
+                <div class="card-body text-center p-4">
+                    <div class="display-3 text-info mb-3"><i class="bi bi-journal-text"></i></div>
+                    <h5 class="card-title mb-1">Post Management</h5>
+                    <p class="card-text small text-muted">Manage all posts and research topics.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 d-flex align-items-stretch">
+            <div class="card shadow-sm h-100 w-100 text-decoration-none link-dark management-card">
+                <a href="{{ url_for('admin.list_academic_works') }}" class="stretched-link"></a>
+                <div class="card-body text-center p-4">
+                    <div class="display-3 text-success mb-3"><i class="bi bi-award-fill"></i></div>
+                    <h5 class="card-title mb-1">Showcase Management</h5>
+                    <p class="card-text small text-muted">Manage featured academic works and projects.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 d-flex align-items-stretch">
+            <div class="card shadow-sm h-100 w-100 text-decoration-none link-dark management-card">
+                <a href="{{ url_for('view_pending_ideas') }}" class="stretched-link"></a>
+                <div class="card-body text-center p-4">
+                    <div class="display-4 text-warning mb-3"><i class="bi bi-lightbulb-fill"></i></div>
+                    <h5 class="card-title mb-1">Student Idea Review</h5>
+                    <p class="card-text small text-muted">Review and manage submitted student ideas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<style>
+    .stat-card .card-body {
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card .bi {
+    }
+    .management-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        position: relative;
+    }
+    .management-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .management-card .card-body p {
+        min-height: 3em;
+    }
+</style>
+{% endblock %}

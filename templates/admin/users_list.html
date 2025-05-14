@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>{{ title }}</h1>
+            <a href="{{ url_for('admin.create_user') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle-fill"></i> Thêm Người dùng Mới
+            </a>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6 offset-md-6">
+                <form method="GET" action="{{ url_for('admin.list_users') }}" class="d-flex">
+                    <input type="hidden" name="role_tab" value="{{ active_tab }}">
+                    <input class="form-control me-2" type="search" placeholder="Tìm theo Tên, Email, MSSV..."
+                           name="q" value="{{ search_query or '' }}" aria-label="Search">
+                    <button class="btn btn-outline-secondary" type="submit">Tìm</button>
+                    {% if search_query %}
+                        <a href="{{ url_for('admin.list_users', role_tab=active_tab) }}"
+                           class="btn btn-outline-danger ms-2" title="Bỏ tìm kiếm">X</a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'student' %}active{% endif %}"
+                   href="{{ url_for('admin.list_users', role_tab='student', q=search_query, page=1) }}">
+                    <i class="bi bi-person-badge me-1"></i> Sinh viên
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'staff' %}active{% endif %}"
+                   href="{{ url_for('admin.list_users', role_tab='staff', q=search_query, page=1) }}">
+                    <i class="bi bi-person-video3 me-1"></i> Giảng viên & Admin
+                </a>
+            </li>
+        </ul>
+
+        <h3 class="mt-4 mb-3">{{ list_title }}</h3>
+        {% if users_pagination and users_pagination.items %}
+            <div class="card shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0" style="font-size: 0.9rem;">
+                        <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 50px;">#</th>
+                            <th scope="col">User Details</th>
+                            <th scope="col" style="width: 15%;">Role</th>
+                            {% if active_tab == 'student' %}
+                                <th scope="col" style="width: 15%;">Student ID</th>
+                                <th scope="col" style="width: 15%;">Class</th>
+                            {% endif %}
+                            <th scope="col" class="text-center" style="width: 15%;">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for user in users_pagination.items %}
+                            <tr>
+                                <td>{{ loop.index + users_pagination.per_page * (users_pagination.page - 1) }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% set image_filename = user.image_file if user.image_file else 'default.jpg' %}
+                                        {% set image_folder = 'user_pics' if user.image_file and not user.image_file.startswith('default') else 'profile_pics' %}
+                                        {% if image_folder == 'profile_pics' %}
+                                            {% if user.gender == 'female' %}
+                                                {% set image_filename = 'default_female.jpg' %}
+                                            {% elif user.gender == 'male' %}
+                                                {% set image_filename = 'default_male.jpg' %}
+                                            {% else %} {% set image_filename = 'default.jpg' %} {% endif %}
+                                        {% endif %}
+                                        {% set avatar_url = url_for('static', filename=image_folder + '/' + image_filename) %}
+                                        <img src="{{ avatar_url }}" alt="{{ user.full_name }}"
+                                             class="rounded-circle me-2"
+                                             width="35" height="35" style="object-fit: cover;">
+                                        <div>
+                                            <a href="{{ url_for('admin.view_user_detail', user_id=user.id) }}"
+                                               class="fw-semibold text-decoration-none link-dark">{{ user.full_name }}</a>
+                                            <div class="small text-muted">{{ user.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill"><i
+                                                class="bi bi-shield-lock-fill me-1"></i>Admin</span>
+                                    {% elif user.role == 'lecturer' %}
+                                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill"><i
+                                                class="bi bi-person-video3 me-1"></i>Lecturer</span>
+                                    {% else %}<span class="badge bg-info-subtle text-info-emphasis rounded-pill"><i
+                                            class="bi bi-person-badge me-1"></i>Student</span>
+                                    {% endif %}
+                                </td>
+                                {% if active_tab == 'student' %}
+                                    <td>{{ user.student_id or 'N/A' }}</td>
+                                    <td>{{ user.class_name or 'N/A' }}</td>
+                                {% endif %}
+                                <td class="text-center">
+                                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}"
+                                       class="btn btn-sm btn-outline-secondary border-0 me-1" title="Edit User"><i
+                                            class="bi bi-pencil-square"></i></a>
+                                    <a href="{{ url_for('admin.view_user_detail', user_id=user.id) }}"
+                                       class="btn btn-sm btn-outline-info border-0 me-1" title="View User Details">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </a>
+                                    {% if user.id != current_user.id %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger border-0"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteUserModal{{ user.id }}" title="Delete User"><i
+                                                class="bi bi-trash-fill"></i></button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary border-0" disabled
+                                                title="Cannot delete yourself"><i class="bi bi-trash-fill"></i></button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1"
+                                 aria-labelledby="deleteUserModalLabel{{ user.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fs-6" id="deleteUserModalLabel{{ user.id }}">Confirm
+                                                Deletion</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Are you sure you want to delete user "{{ user.full_name }}"?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm"
+                                                    data-bs-dismiss="modal">
+                                                Cancel
+                                            </button>
+                                            <form action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                                                  method="POST"
+                                                  style="display:inline;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                Không tìm thấy người dùng nào thuộc nhóm này {% if search_query %} với từ khóa "{{ search_query }}
+                "{% endif %}.
+            </div>
+        {% endif %}
+
+        {% if users_pagination and users_pagination.pages > 1 %}
+            <nav aria-label="User list navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not users_pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link"
+                           href="{{ url_for('admin.list_users', page=users_pagination.prev_num, q=search_query, role_tab=active_tab) if users_pagination.has_prev else '#' }}">&laquo;</a>
+                    </li>
+                    {% for page_num in users_pagination.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == users_pagination.page %}active{% endif %}">
+                                <a class="page-link"
+                                   href="{{ url_for('admin.list_users', page=page_num, q=search_query, role_tab=active_tab) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not users_pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link"
+                           href="{{ url_for('admin.list_users', page=users_pagination.next_num, q=search_query, role_tab=active_tab) if users_pagination.has_next else '#' }}">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
+        {% endif %}
+
+    </div>
+{% endblock %}
