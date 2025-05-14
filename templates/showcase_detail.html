@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.title }} - Công trình Tiêu biểu{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+
+                <article class="showcase-article mb-5">
+
+                  <h2 class="display-5 mb-2 fw-bold">{{ item.title }}</h2>
+
+                    <div class="text-muted mb-3 border-bottom pb-2">
+                        <p class="mb-1"><strong>Tác giả/Nhóm:</strong> {{ item.authors_text }}</p>
+                        <p class="mb-0"><strong>Năm:</strong> {{ item.year or 'N/A' }} | <strong>Loại:</strong>
+                            {% if item.item_type == 'thesis' %}Luận văn/Đồ án{% elif item.item_type == 'proceeding' %}
+                                Bài báo/Kỷ yếu{% elif item.item_type == 'project' %}Dự án khác{% else %}
+                                {{ item.item_type | title }}{% endif %} | <strong>Ngày
+                                đăng:</strong> {{ item.date_added.strftime('%d/%m/%Y') }}</p>
+                    </div>
+
+                    {% if item.image_file %}
+
+                        <img src="{{ url_for('static', filename=config.get('academic_work_images', 'static/academic_work_images').split('static/')[-1] + '/' + item.image_file) }}"
+                             class="img-fluid rounded mb-4 shadow-sm d-block mx-auto" alt="Ảnh minh họa cho {{ item.title }}">
+                    {% endif %}
+
+                    {% if item.abstract %}
+                        <blockquote class="blockquote fs-5 mb-4 fst-italic">
+                            <p>{{ item.abstract }}</p>
+                        </blockquote>
+                        <hr class="my-4">
+                    {% endif %}
+
+                    <div class="showcase-content">
+                        {{ item.full_content | safe if item.full_content else '<p><em>(Không có nội dung chi tiết)</em></p>' }}
+                    </div>
+
+                    {% if item.external_link %}
+                        <hr class="my-4">
+                        <p>
+                            <a href="{{ item.external_link }}" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-box-arrow-up-right"></i> Xem tài liệu / Link gốc
+                            </a>
+                        </p>
+                    {% endif %}
+
+                    <hr class="my-4">
+                    <div class="d-flex align-items-center mt-4">
+
+                        <div class="me-2">
+                            <button
+                                    id="like-button"
+                                    type="button"
+                                    class="btn btn-sm {% if not current_user.is_authenticated %}disabled btn-outline-secondary{% elif user_has_liked %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                                    data-item-id="{{ item.id }}"
+                                    data-url="{{ url_for('toggle_showcase_like', item_id=item.id) }}"
+                                    title="{% if not current_user.is_authenticated %}Đăng nhập để thích{% elif user_has_liked %}Bỏ thích{% else %}Thích{% endif %}"
+                                    {% if not current_user.is_authenticated %}disabled{% endif %}>
+
+                                <i id="like-icon"
+                                   class="bi {% if user_has_liked %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                                Thích <span id="like-count">({{ like_count }})</span>
+                            </button>
+                        </div>
+
+                        <div>
+                            <button id="share-button" type="button" class="btn btn-sm btn-outline-secondary"
+                                    title="Chia sẻ">
+                                <i class="bi bi-share-fill"></i> Chia sẻ
+                            </button>
+                            <div id="fallback-share-links" class="mt-2 d-none">
+                                <small>Chia sẻ qua:</small><br>
+                                <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank"
+                                   rel="noopener noreferrer" class="btn btn-sm btn-outline-primary bi-facebook"
+                                   title="Facebook"></a>
+                                <a href="https://twitter.com/intent/tweet?url={{ request.url }}&text={{ item.title|urlencode }}"
+                                   target="_blank" rel="noopener noreferrer"
+                                   class="btn btn-sm btn-outline-info bi-twitter-x" title="Twitter/X"></a>
+                                <a href="mailto:?subject={{ item.title|urlencode }}&body={{ item.abstract or item.title |truncate(100)|urlencode }}%0A%0A{{ request.url }}"
+                                   class="btn btn-sm btn-outline-warning bi-envelope-fill" title="Email"></a>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </article>
+
+                <a href="{{ url_for('showcase') }}" class="btn btn-secondary mt-4"><i class="bi bi-arrow-left"></i> Quay
+                    lại danh sách</a>
+
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+
+{% block scripts %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const likeButton = document.getElementById('like-button');
+            const likeIcon = document.getElementById('like-icon');
+            const likeCountSpan = document.getElementById('like-count');
+
+            if (likeButton) {
+                likeButton.addEventListener('click', function () {
+                    if (this.disabled) {
+                        return;
+                    }
+
+                    const itemId = this.dataset.itemId;
+                    const url = this.dataset.url;
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                    const isCsrfEnabled = "{{ config.get('WTF_CSRF_ENABLED', True) }}".toLowerCase() === 'true';
+                    if (isCsrfEnabled && !csrfToken) {
+                        console.error('CSRF Token not found! Make sure it is available in a meta tag or form input.');
+                        alert('Lỗi bảo mật, không thể thực hiện. Vui lòng tải lại trang (F5).');
+                        return;
+                    }
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({})
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(errData => {
+                                    throw new Error(errData.message || `Lỗi HTTP: ${response.status}`);
+                                }).catch(() => {
+                                    throw new Error(`Lỗi HTTP: ${response.status}`);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                likeCountSpan.textContent = `(${data.like_count})`;
+
+                                if (data.liked) {
+                                    likeButton.classList.remove('btn-outline-danger');
+                                    likeButton.classList.add('btn-danger');
+                                    likeIcon.classList.remove('bi-heart');
+                                    likeIcon.classList.add('bi-heart-fill');
+                                    likeButton.title = 'Bỏ thích';
+                                } else {
+                                    likeButton.classList.remove('btn-danger');
+                                    likeButton.classList.add('btn-outline-danger');
+                                    likeIcon.classList.remove('bi-heart-fill');
+                                    likeIcon.classList.add('bi-heart');
+                                    likeButton.title = 'Thích';
+                                }
+                            } else {
+                                console.error('Error from backend:', data.message);
+                                alert(data.message || 'Đã có lỗi xảy ra khi xử lý.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Fetch error:', error);
+                            alert('Lỗi kết nối hoặc xử lý dữ liệu, vui lòng thử lại.');
+                        });
+                });
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const shareButton = document.getElementById('share-button');
+            const fallbackLinks = document.getElementById('fallback-share-links');
+
+            if (shareButton) {
+                shareButton.addEventListener('click', async () => {
+                    const shareData = {
+                        title: {{ item.title | tojson | safe }},
+                        text: {{ (item.abstract or item.title) | truncate(100) | tojson | safe }},
+                        url: {{ url_for("showcase_detail", item_id=item.id, _external=True) | tojson | safe }}
+                    };
+
+                    if (navigator.share) {
+                        try {
+                            await navigator.share(shareData);
+                            console.log('Nội dung được chia sẻ thành công!');
+                        } catch (err) {
+                            console.error('Lỗi khi chia sẻ:', err);
+                        }
+                    } else {
+                        console.log('Web Share API không được hỗ trợ, hiển thị fallback links.');
+                        if (fallbackLinks) {
+                            fallbackLinks.classList.remove('d-none');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+{% endblock scripts %}

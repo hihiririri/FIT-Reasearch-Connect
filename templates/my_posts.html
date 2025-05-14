@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ title }}</h1>
+        <a href="{{ url_for('create_post') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle-fill"></i> Create New Post / Topic
+        </a>
+    </div>
+
+    {% if posts_pagination and posts_pagination.items %}
+        {% for post in posts_pagination.items %}
+        <div class="card mb-3 shadow-sm">
+             <div class="card-body">
+                 <h5 class="card-title">
+                    <a href="{{ url_for('view_post', post_id=post.id) }}" class="text-decoration-none link-dark fw-bold">{{ post.title }}</a>
+                    {% if post.post_type == 'topic' %} <span class="badge bg-primary ms-1">Topic</span>
+                    {% elif post.post_type == 'article' %} <span class="badge bg-secondary ms-1">Article</span> {% endif %}
+                     {% if post.is_featured %} <span class="badge bg-warning text-dark ms-1"><i class="bi bi-pin-angle-fill"></i> Featured</span> {% endif %}
+                    {% if post.post_type == 'topic' and post.status %}
+                         {% if post.status == 'recruiting' %} <span class="badge bg-success ms-1">Recruiting Students</span>
+                         {% elif post.status == 'pending' %} <span class="badge bg-warning text-dark ms-1">Pending Approval</span>
+                         {% elif post.status == 'closed' %} <span class="badge bg-secondary ms-1">Closed</span>
+                         {% elif post.status == 'working_on' %} <span class="badge bg-info ms-1">In Progress</span>
+                         {% elif post.status == 'published' %} <span class="badge bg-light text-dark ms-1">Published</span>
+                         {% endif %}
+                    {% elif post.post_type == 'article' and post.status == 'published' %}
+                         <span class="badge bg-light text-dark ms-1">Published</span>
+                    {% endif %}
+                 </h5>
+                 <p class="card-text mb-1"><small class="text-muted">Posted on {{ post.date_posted.strftime('%d/%m/%Y %H:%M') }}</small></p>
+                 <p class="card-text small">{{ post.content | striptags | truncate(200, True, '...') }}</p>
+                 {% if post.tags.count() > 0 %}
+                    <div class="mb-2 post-tags-summary">
+                         <small class="text-muted">
+                            Tags:
+                            {% for tag in post.tags.limit(3) %}<span class="badge rounded-pill bg-secondary me-1">{{ tag.name }}</span>{% endfor %}
+                            {% if post.tags.count() > 3 %}<span class="badge rounded-pill bg-light text-dark">...</span>{% endif %}
+                        </small>
+                    </div>
+                 {% endif %}
+                 {% if post.attachments %}
+                     <div class="attachment-link-condensed mb-2">
+                         {% for attachment in post.attachments[:1] %}
+                            <a href="{{ url_for('download_file', filename=attachment.saved_filename) }}" target="_blank" class="text-decoration-none small">
+                                <i class="bi bi-paperclip me-1"></i>
+                                {{ attachment.original_filename | truncate(30, True, '...') }}
+                                {% if post.attachments|length > 1 %} (+{{ post.attachments|length - 1 }}) {% endif %}
+                            </a>
+                         {% endfor %}
+                    </div>
+                 {% endif %}
+
+                 <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
+                     <a href="{{ url_for('view_post', post_id=post.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+
+                     <a href="{{ url_for('update_post', post_id=post.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil-fill"></i> Edit</a>
+
+                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePostModal{{ post.id }}"><i class="bi bi-trash-fill"></i> Delete</button>
+
+                     <div class="d-inline-block post-like-button-container">
+                         <button
+                             type="button"
+                             class="btn btn-sm post-like-toggle-btn {% if not current_user.is_authenticated %}disabled btn-outline-secondary{% elif post.id in user_liked_posts %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                             data-post-id="{{ post.id }}"
+                             data-url="{{ url_for('toggle_post_like', post_id=post.id) }}"
+                             title="{% if not current_user.is_authenticated %}Login to like{% elif post.id in user_liked_posts %}Unlike{% else %}Like{% endif %}"
+                             {% if not current_user.is_authenticated %}disabled{% endif %}>
+                             <i class="bi {% if post.id in user_liked_posts %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                             Like
+                             <span class="like-count">({{ like_counts.get(post.id, 0) }})</span>
+                         </button>
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                     </div>
+
+                     {% if post.post_type == 'topic' and post.status in ['recruiting', 'working_on', 'pending', 'closed'] %}
+                        {% set pending_app_count = post.applications.filter_by(status='pending').count() %}
+                        <a href="{{ url_for('view_topic_applications', post_id=post.id) }}" class="btn btn-sm btn-outline-info position-relative" title="View Applications">
+                            <i class="bi bi-people-fill"></i> Applications
+                            {% if pending_app_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ pending_app_count }}<span class="visually-hidden"> pending applications</span>
+                            </span>
+                            {% endif %}
+                        </a>
+                     {% endif %}
+                 </div>
+
+                <div class="modal fade" id="deletePostModal{{ post.id }}" tabindex="-1" aria-labelledby="deletePostModalLabel{{ post.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title fs-6" id="deletePostModalLabel{{ post.id }}">Confirm Deletion</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">Delete post "{{ post.title }}"?</div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">You haven't created any posts yet. <a href="{{ url_for('create_post') }}" class="alert-link">Create a new post now</a>!</div>
+    {% endif %}
+
+    {% if posts_pagination and posts_pagination.pages > 1 %}
+    <nav aria-label="My posts navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not posts_pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('my_posts', page=posts_pagination.prev_num) if posts_pagination.has_prev else '#' }}">&laquo; Previous</a>
+            </li>
+            {% for page_num in posts_pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if posts_pagination.page == page_num %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('my_posts', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not posts_pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('my_posts', page=posts_pagination.next_num) if posts_pagination.has_next else '#' }}">Next &raquo;</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+{% endblock %}

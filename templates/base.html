@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="vie">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-fileinput@5.5.2/css/fileinput.min.css">
+    <link href="https://unpkg.com/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css"/>
+
+
+    <title>{% block title %}FIT Research Connect{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top main-header-custom-red">
+    <div class="container-fluid">
+        <a class="navbar-brand main-header-logo-wrapper" href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', filename='logo_pics/logo.png') }}" alt="FIT Research Connect Logo"
+                 class="main-header-logo-img">
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavCustomRed"
+                aria-controls="navbarNavCustomRed" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNavCustomRed">
+            <div class="mx-auto main-header-search-wrapper">
+                <form class="d-flex main-header-search-form" role="search" method="GET"
+                      action="{{ url_for('search_results') }}">
+                    <div class="input-group">
+                        <span class="input-group-text search-icon-bg-custom-red"><i class="bi bi-search"></i></span>
+                        <input class="form-control search-input-custom-red" type="search" placeholder="Search"
+                               aria-label="Search" name="q" id="navbarSearchInputCustomRed" autocomplete="off"
+                               value="{{ request.args.get('q', '') }}">
+                    </div>
+                </form>
+                <div class="dropdown-menu search-results-dropdown-custom-red" id="searchResultsDropdownCustomRed"></div>
+            </div>
+
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center main-header-nav-items-custom-red">
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+                           aria-current="page" href="{{ url_for('dashboard') }}">FIT Researches</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('showcase') %}active{% endif %}"></a>
+                        <a href="{{ url_for('view_all_showcase_items_explicit') }}">Featured Works</a></li>
+
+                    {% if current_user.role == 'student' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'my_applications' %}active{% endif %}"
+                               href="{{ url_for('my_applications') }}">Registered Topics</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'my_ideas' %}active{% endif %}"
+                               href="{{ url_for('my_ideas') }}">My Ideas</a>
+                        </li>
+                    {% elif current_user.role == 'lecturer' %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'my_posts' %}active{% endif %}"
+                               href="{{ url_for('my_posts') }}">My Posts</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'view_pending_ideas' %}active{% endif %}"
+                               href="{{ url_for('view_pending_ideas') }}">Student Ideas</a>
+                        </li>
+                    {% endif %}
+
+                    <li class="nav-item position-relative me-2">
+                        <a class="nav-link d-flex align-items-center" href="{{ url_for('notifications') }}"
+                           title="Notifications">
+                            <i class="bi bi-bell-fill main-header-icon-custom-red"></i>
+                            {% if current_user.is_authenticated and unread_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-white border border-light rounded-circle notification-badge-custom-red">
+                                    <span class="visually-hidden">New notifications</span>
+                                </span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#"
+                           id="navbarDropdownUserLinkCustomRed" role="button" data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            {% set image_filename = current_user.image_file if current_user.image_file else 'default.jpg' %}
+                            {% set image_folder = 'user_pics' %}
+                            {% if image_filename.startswith('default') %}
+                                {% set image_folder = 'profile_pics' %}
+                                {% if current_user.gender == 'female' %}{% set image_filename = 'default_female.jpg' %}
+                                    {% elif current_user.gender == 'male' %}{% set image_filename = 'default_male.jpg' %}
+                                {% else %}{% set image_filename = 'default.jpg' %}{% endif %}
+                            {% endif %}
+                            {% set avatar_url = url_for('static', filename=image_folder + '/' + image_filename) %}
+                            <img src="{{ avatar_url }}" alt="Avatar"
+                                 class="rounded-circle me-1 main-header-avatar-custom-red">
+                            <span class="main-header-username-custom-red">{{ current_user.full_name }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end main-header-dropdown-custom-red"
+                            aria-labelledby="navbarDropdownUserLinkCustomRed">
+                            <li><a class="dropdown-item" href="{{ url_for('account') }}">Profile</a></li>
+                            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.index') }}">Admin Dashboard</a>
+                                </li>
+                            {% endif %}
+                            {% if current_user.is_authenticated and current_user.role == 'lecturer' and 'my_posts'  %}
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" href="{{ url_for('my_posts') }}">My Posts</a></li>
+                            {% endif %}
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Log out</a></li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+<main class="container mt-5 mb-5">
+
+    {% block content %}{% endblock %}
+</main>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-fileinput@5.5.2/js/plugins/piexif.min.js"
+        type="text/javascript"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-fileinput@5.5.2/js/plugins/sortable.min.js"
+        type="text/javascript"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-fileinput@5.5.2/js/fileinput.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-fileinput@5.5.2/js/locales/vi.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+<script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
+
+
+{% block scripts %}{% endblock %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const toastContainer = document.querySelector('.toast-container');
+                if (toastContainer) {
+                    {% for category, message in messages %}
+                        console.log("Flash Message:", {{ category | tojson | safe }}, {{ message | tojson | safe }});
+
+                        {% if category == 'auth' %}
+                            {
+                                const toastId = 'flash-toast-auth-{{ loop.index }}';
+                                let bgClass = 'text-bg-info';
+
+                                const lowerMessage = {{ message | tojson | safe }}.toLowerCase();
+
+                                if (lowerMessage.includes('thất bại') || lowerMessage.includes('không đúng') || lowerMessage.includes('failed') || lowerMessage.includes('incorrect')) {
+                                    bgClass = 'text-bg-danger';
+                                } else if (lowerMessage.includes('thành công') || lowerMessage.includes('success')) {
+                                    bgClass = 'text-bg-success';
+                                }
+
+                                const toastHTML = `
+                            <div id="${toastId}" class="toast align-items-center ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                              <div class="d-flex">
+                                <div class="toast-body">
+                                  {{ message | safe }}
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                              </div>
+                            </div>`;
+
+                                toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+                                const toastElement = document.getElementById(toastId);
+                                if (toastElement) {
+                                    const toast = new bootstrap.Toast(toastElement);
+                                    toast.show();
+                                    toastElement.addEventListener('hidden.bs.toast', function () {
+                                        toastElement.remove();
+                                    });
+                                }
+                            }
+                        {% endif %}
+                    {% endfor %}
+                } else {
+                    console.warn('Toast container (.toast-container) not found.');
+                }
+            });
+        </script>
+    {% endif %}
+{% endwith %}
+
+
+<script>
+    const searchInput = document.getElementById('navbarSearchInput');
+    const resultsDropdown = document.getElementById('searchResultsDropdown');
+    let searchTimeout;
+
+    if (searchInput && resultsDropdown) {
+        searchInput.addEventListener('input', function (event) {
+            const query = event.target.value.trim();
+
+            clearTimeout(searchTimeout);
+
+            if (query.length >= 1) {
+                searchTimeout = setTimeout(() => {
+                    fetch(`/api/search-suggestions?q=${encodeURIComponent(query)}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            resultsDropdown.innerHTML = '';
+                            if (data.length > 0) {
+                                data.forEach(item => {
+                                    const link = document.createElement('a');
+                                    link.classList.add('dropdown-item');
+                                    link.href = item.url;
+                                    link.textContent = `${item.title} - ${item.author}`;
+                                    resultsDropdown.appendChild(link);
+                                });
+                                resultsDropdown.style.display = 'block';
+                            } else {
+                                const noResult = document.createElement('span');
+                                noResult.classList.add('dropdown-item', 'text-muted');
+                                noResult.textContent = 'Không tìm thấy kết quả nào';
+                                resultsDropdown.appendChild(noResult);
+                                resultsDropdown.style.display = 'block';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching search suggestions:', error);
+                            resultsDropdown.innerHTML = '<span class="dropdown-item text-danger">Lỗi khi tìm kiếm</span>';
+                            resultsDropdown.style.display = 'block';
+                        });
+                }, 300);
+            } else {
+                resultsDropdown.innerHTML = '';
+                resultsDropdown.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!searchInput.contains(event.target) && !resultsDropdown.contains(event.target)) {
+                resultsDropdown.style.display = 'none';
+            }
+        });
+
+        searchInput.addEventListener('blur', function () {
+            setTimeout(() => {
+                if (!resultsDropdown.contains(document.activeElement)) {
+                    resultsDropdown.style.display = 'none';
+                }
+            }, 150);
+        });
+        searchInput.addEventListener('focus', function () {
+            if (resultsDropdown.children.length > 0 && searchInput.value.length >= 2) {
+                resultsDropdown.style.display = 'block';
+            }
+        });
+
+
+    } else {
+        if (!searchInput) console.error("Không tìm thấy #navbarSearchInput");
+        if (!resultsDropdown) console.error("Không tìm thấy #searchResultsDropdown");
+    }
+</script>
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        document.body.addEventListener('click', function (event) {
+            const button = event.target.closest('.interest-toggle-btn');
+
+            if (button) {
+                event.preventDefault();
+
+                const postId = button.dataset.postId;
+                const currentAction = button.dataset.currentAction;
+                const addUrl = button.dataset.addUrl;
+                const removeUrl = button.dataset.removeUrl;
+
+                const targetUrl = (currentAction === 'add') ? addUrl : removeUrl;
+
+                const csrfInput = button.closest('.interest-button-container')?.querySelector('input[name="csrf_token"]');
+                const csrfToken = csrfInput ? csrfInput.value : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                const isCsrfEnabled = "{{ config.get('WTF_CSRF_ENABLED', True) }}".toLowerCase() === 'true';
+                if (isCsrfEnabled && !csrfToken) {
+                    console.error('Interest Button: CSRF Token not found!');
+                    alert('Lỗi bảo mật, không thể thực hiện. Vui lòng tải lại trang (F5).');
+                    return;
+                }
+
+                fetch(targetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({})
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(errData => {
+                                throw new Error(errData.message || `HTTP error ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const icon = button.querySelector('i');
+                            const textSpan = button.querySelector('.button-text');
+
+                            if (data.interested) {
+                                button.classList.remove('btn-success');
+                                button.classList.add('btn-outline-danger');
+                                icon.classList.remove('bi-heart-fill');
+                                icon.classList.add('bi-heartbreak-fill');
+                                textSpan.textContent = 'Bỏ quan tâm';
+                                button.title = 'Bỏ quan tâm';
+                                button.dataset.currentAction = 'remove';
+                            } else {
+                                button.classList.remove('btn-outline-danger');
+                                button.classList.add('btn-success');
+                                icon.classList.remove('bi-heartbreak-fill');
+                                icon.classList.add('bi-heart-fill');
+                                textSpan.textContent = 'Quan tâm';
+                                button.title = 'Đăng ký quan tâm';
+                                button.dataset.currentAction = 'add';
+                            }
+
+                        } else {
+                            console.error('Error from backend:', data.message);
+                            alert(data.message || 'Đã có lỗi xảy ra.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                        alert('Lỗi kết nối hoặc xử lý dữ liệu, vui lòng thử lại.');
+                    });
+            }
+        });
+
+    });
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        document.body.addEventListener('click', function (event) {
+            const likeButton = event.target.closest('.post-like-toggle-btn');
+
+            if (likeButton) {
+                event.preventDefault();
+                if (likeButton.disabled) return;
+
+                const postId = likeButton.dataset.postId;
+                const url = likeButton.dataset.url;
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || likeButton.closest('.post-like-button-container')?.querySelector('input[name="csrf_token"]')?.value;
+                const isCsrfEnabled = "{{ config.get('WTF_CSRF_ENABLED', True) }}".toLowerCase() === 'true';
+
+                if (isCsrfEnabled && !csrfToken) {
+                    console.error('Post Like: CSRF Token not found!');
+                    alert('Lỗi bảo mật, không thể thực hiện.');
+                    return;
+                }
+
+                likeButton.disabled = true;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+                    body: JSON.stringify({})
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().catch(() => {
+                                throw new Error(`HTTP error ${response.status}`);
+                            })
+                                .then(errData => {
+                                    throw new Error(errData.message || `HTTP error ${response.status}`);
+                                });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const likeIcon = likeButton.querySelector('i');
+                            const likeCountSpan = likeButton.querySelector('.like-count');
+                            if (likeCountSpan) likeCountSpan.textContent = `(${data.like_count})`;
+
+                            if (data.liked) {
+                                likeButton.classList.remove('btn-outline-danger');
+                                likeButton.classList.add('btn-danger');
+                                if (likeIcon) {
+                                    likeIcon.classList.remove('bi-heart');
+                                    likeIcon.classList.add('bi-heart-fill');
+                                }
+                                likeButton.title = 'Bỏ thích';
+                            } else {
+                                likeButton.classList.remove('btn-danger');
+                                likeButton.classList.add('btn-outline-danger');
+                                if (likeIcon) {
+                                    likeIcon.classList.remove('bi-heart-fill');
+                                    likeIcon.classList.add('bi-heart');
+                                }
+                                likeButton.title = 'Thích';
+                            }
+                        } else {
+                            alert(data.message || 'Có lỗi.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Post Like Fetch error:', error);
+                        alert(error.message || 'Lỗi kết nối.');
+                    })
+                    .finally(() => {
+                        if ("{{ current_user and current_user.is_authenticated }}".toLowerCase() === 'true') {
+                            likeButton.disabled = false;
+                        }
+                    });
+            }
+        });
+
+    });
+</script>
+<script src="/static/js/jsAll.js" defer></script>
+
+
+<footer class="bg-dark text-light text-center py-3 mt-auto custom-footer">
+    <div class="container">
+        <p class="mb-0 small">&copy; 2025 Faculty of Information Technology - Hanoi University</p>
+    </div>
+</footer>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+    <script src="https://unpkg.com/@yaireo/tagify/dist/tagify.min.js"></script>
+
+</div>
+<script src="{{ url_for('static', filename='js/jsAll.js') }}"></script>
+</body>
+
+</html>

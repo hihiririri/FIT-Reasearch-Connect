@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+
+    <div class="showcase-header mb-4 text-center">
+        <h1 class="display-5 fw-bold">{{ title }}</h1>
+        <p class="lead text-muted col-lg-8 mx-auto">
+            Welcome to the showcase of the Faculty's featured research works and outstanding student projects.
+        </p>
+    </div>
+
+    <div class="welcome-message-block p-4 mb-4 bg-white rounded-3 shadow-sm text-center">
+        <p class="mb-0">Welcome to the showcase of the Faculty's featured research works and outstanding student projects.</p>
+    </div>
+
+
+    {% if carousel_items %}
+        <div id="showcaseCarousel" class="carousel slide mb-4 shadow-sm" data-bs-ride="carousel"
+             data-bs-interval="10000">
+        </div>
+    {% endif %}
+
+    <hr class="my-4">
+
+    <h2 class="mb-3">All Projects</h2>
+
+    {% if items_pagination and items_pagination.items %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for item in items_pagination.items %}
+            {% endfor %}
+        </div>
+
+        {% if items_pagination.pages > 1 %}
+        {% endif %}
+    {% else %}
+        <div class="alert alert-custom-light-pink" role="alert">
+            No projects have been displayed yet.
+        </div>
+    {% endif %}
+{% endblock %}

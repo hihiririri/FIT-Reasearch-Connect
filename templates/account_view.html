@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Account Information{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
+                            {% set image_filename = current_user.image_file if current_user.image_file else 'default.jpg' %}
+                            {% set image_folder = 'user_pics' %}
+                            {% if image_filename.startswith('default') %}
+                                {% set image_folder = 'profile_pics' %}
+                                {% if current_user.gender == 'female' %}
+                                    {% set image_filename = 'default_female.jpg' %}
+                                {% elif current_user.gender == 'male' %}
+                                    {% set image_filename = 'default_male.jpg' %}
+                                {% else %}
+                                    {% set image_filename = 'default.jpg' %}
+                                {% endif %}
+                            {% endif %}
+                            {% set avatar_url = url_for('static', filename=image_folder + '/' + image_filename) %}
+                            <img class="rounded-circle img-thumbnail" src="{{ avatar_url }}" alt="Profile Picture" width="150" height="150" style="object-fit: cover;">
+                        </div>
+                        <div class="col-md-5">
+                            <h3 class="mb-1">{{ current_user.full_name }}</h3>
+                            <p class="text-muted mb-1">
+                                {% if current_user.role == 'student' %}
+                                    Student {% if current_user.class_name %}({{ current_user.class_name }}){% endif %}
+                                {% elif current_user.role == 'lecturer' %}
+                                    Lecturer
+                                {% elif current_user.role == 'admin' %}
+                                    Administrator
+                                {% else %}
+                                    User
+                                {% endif %}
+                            </p>
+                            <p class="text-muted small mb-0"><i class="bi bi-envelope-fill me-1"></i>{{ current_user.email }}</p>
+                        </div>
+                        <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
+                            <a href="{{ url_for('account_edit') }}" class="btn btn-primary btn-sm mb-2 d-block w-100">
+                                <i class="bi bi-pencil-square"></i> Edit Information
+                            </a>
+                            <a href="{{ url_for('change_password') }}" class="btn btn-outline-secondary btn-sm d-block w-100">
+                                <i class="bi bi-key-fill"></i> Change Password
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Date of Birth:</dt>
+                        <dd class="col-sm-8">{{ current_user.date_of_birth.strftime('%d/%m/%Y') if current_user.date_of_birth else 'Not updated yet' }}</dd>
+
+                        <dt class="col-sm-4">Gender:</dt>
+                        <dd class="col-sm-8">
+                            {% if current_user.gender == 'male' %} Male
+                            {% elif current_user.gender == 'female' %} Female
+                            {% else %} Not updated yet
+                            {% endif %}
+                         </dd>
+
+                         <dt class="col-sm-4">Phone:</dt>
+                         <dd class="col-sm-8">{{ current_user.phone_number or 'Not updated yet' }}</dd>
+
+                         <dt class="col-sm-4">Alternative Contact Email:</dt>
+                         <dd class="col-sm-8">{{ current_user.contact_email or 'Not updated yet' }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            {% if current_user.role == 'student' %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Academic Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Student ID:</dt>
+                        <dd class="col-sm-8">{{ current_user.student_id or 'Not updated yet' }}</dd>
+                        <dt class="col-sm-4">Class:</dt>
+                        <dd class="col-sm-8">{{ current_user.class_name or 'Not updated yet' }}</dd>
+                        <dt class="col-sm-4">Cohort:</dt>
+                        <dd class="col-sm-8">{{ cohort or 'N/A' }}</dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">About Me</h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.about_me %}
+                         <p class="text-muted" style="white-space: pre-wrap;">{{ current_user.about_me }}</p>
+                    {% else %}
+                         <p class="text-muted"><i>Not updated yet...</i></p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
